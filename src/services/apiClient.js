@@ -19,7 +19,9 @@ function joinUrl(base, path) {
 const RAW_BASE =
   (typeof import.meta !== 'undefined' &&
     import.meta.env &&
-    import.meta.env.VITE_API_BASE_URL) ||
+    (import.meta.env.VITE_API_BASE_URL ||
+      import.meta.env.VITE_API_URL ||
+      import.meta.env.REACT_APP_API_URL)) ||
   '/api'
 
 const BASE = RAW_BASE || '/api'
@@ -37,6 +39,19 @@ function getUrl(path) {
 export async function request(path, options = {}) {
   const url = getUrl(path)
 
+  if (
+    typeof window !== 'undefined' &&
+    window.location.protocol === 'https:' &&
+    url.startsWith('http://')
+  ) {
+    return {
+      success: false,
+      data: null,
+      message:
+        'HTTPS 페이지에서 HTTP API를 호출할 수 없습니다. VITE_API_BASE_URL을 https 주소로 설정해 주세요.',
+    }
+  }
+
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -51,7 +66,7 @@ export async function request(path, options = {}) {
       data: null,
       message:
         e?.message ||
-        '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+        `네트워크 오류: ${url} 요청 실패 (백엔드/CORS/환경변수 확인)`,
     }
   }
 
